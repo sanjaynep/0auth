@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register - Auth System{% endblock %}
+
+{% block content %}
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2>Create Account</h2>
+            <p class="subtitle">Join us today and get started</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <span class="message {{ message.tags }}" style="color: red; font-size: 16px; font-weight: bold;">{{ message }}</span>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" action="{% url 'register' %}" class="auth-form" novalidate>
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ form.full_name.value|default:'' }}" placeholder="Enter your full name" required>
+                     {% if form.full_name.errors %}
+                         {% for error in form.full_name.errors %}
+                            <div class="error-message" style="color: red; font-size: 5px; margin-top: 5px;">
+                                <p>{{ error }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="Enter your email" required>
+                    {% if form.email.errors %}
+                         {% for error in form.email.errors %}
+                            <div class="error-message" style="color: red; font-size: 5px; margin-top: 5px;">
+                                <p>{{ error }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    {% if form.password.errors %}
+                         {% for error in form.password.errors %}
+                            <div class="error-message" style="color: red; font-size: 5px; margin-top: 5px;">
+                                <p>{{ error }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                    {% if form.confirm_password.errors %}
+                         {% for error in form.confirm_password.errors %}
+                            <div class="error-message" style="color: red; font-size: 5px; margin-top: 5px;">
+                                <p>{{ error }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                {% if form.non_field_errors %}
+                    <div class="error-message" style="color: red; font-size: 14px; margin-top: 5px;">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-submit">Register</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="{% url 'login' %}" class="auth-link">Login here</a></p>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
