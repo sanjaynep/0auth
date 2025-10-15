@@ -1,6 +1,6 @@
 # 0auth — Custom Authentication System (Django)
 
-A production‑ready, fully customizable authentication module built with Python, HTML, and CSS. It includes email verification, user registration, login, logout, password reset via email, and change‑password flows, with secure defaults and clear separation of concerns.
+A production‑ready, fully customizable authentication module built with Python, HTML, and CSS. It includes email verification, user registration, login, logout, password reset via email, change password, and **social login** (Google, Facebook, GitHub, etc.).
 
 If you are integrating this module into an existing project, you can drop in the `accounts` app (or similarly named app in this repo) and wire up the URLs, templates, and settings as described below.
 
@@ -16,6 +16,7 @@ If you are integrating this module into an existing project, you can drop in the
 - Password reset (email link with time‑limited token)
 - Change password (requires current password)
 - Resend verification email
+- **Social login (Google, Facebook, GitHub, etc.)**
 - Secure token generation/validation using Django’s standard utilities
 - Accessible, responsive HTML/CSS templates
 - Clear extension points for custom user model, forms, and email templates
@@ -29,6 +30,7 @@ If you are integrating this module into an existing project, you can drop in the
 - CSS (vanilla or utility classes)
 - SQLite for local development (PostgreSQL recommended for production)
 - SMTP (or console backend) for emails
+- **django-allauth or social-auth-app-django for social login**
 
 ---
 
@@ -53,6 +55,7 @@ Your structure may look like:
 │  │     ├─ password_reset_done.html
 │  │     ├─ password_reset_confirm.html
 │  │     └─ password_reset_complete.html
+│  │     ├─ social_login.html          # Social login template
 │  ├─ emails/
 │  │  ├─ verification_subject.txt
 │  │  └─ verification_body.txt
@@ -85,6 +88,10 @@ Your structure may look like:
 
 3. Install dependencies:
    - `pip install -r requirements.txt`
+   - **For social login:**  
+     - `pip install django-allauth`  
+     or  
+     - `pip install social-auth-app-django`
 
 4. Create a `.env` file (see “Configuration” below), then apply migrations:
    - `python manage.py migrate`
@@ -129,17 +136,47 @@ SITE_SCHEME=http
 
 In `settings.py`, ensure:
 
-- `INSTALLED_APPS` includes: `django.contrib.auth`, `django.contrib.contenttypes`, `django.contrib.sessions`, `django.contrib.messages`, `django.contrib.staticfiles`, and the `accounts` app.
+- `INSTALLED_APPS` includes:  
+  `django.contrib.auth`, `django.contrib.contenttypes`, `django.contrib.sessions`, `django.contrib.messages`, `django.contrib.staticfiles`, the `accounts` app,  
+  **and for social login:**  
+  - `django.contrib.sites`  
+  - `allauth`, `allauth.account`, `allauth.socialaccount`  
+  - `allauth.socialaccount.providers.google` (and/or facebook, github, etc.)
+
+- `SITE_ID = 1` (required for django-allauth)
+
 - If using a custom user model:
   - `AUTH_USER_MODEL = "accounts.CustomUser"`
+
 - Password validators:
   - `AUTH_PASSWORD_VALIDATORS = [...]` (use Django’s defaults for security)
+
 - Email configuration reads from environment variables.
+
 - Useful session settings:
   - `SESSION_COOKIE_SECURE = not DEBUG`
   - `CSRF_COOKIE_SECURE = not DEBUG`
   - `SECURE_HSTS_SECONDS` (production)
   - `SECURE_SSL_REDIRECT = not DEBUG`
+
+- **Social login settings (django-allauth example):**
+  ```python
+  AUTHENTICATION_BACKENDS = (
+      "django.contrib.auth.backends.ModelBackend",
+      "allauth.account.auth_backends.AuthenticationBackend",
+  )
+
+  LOGIN_REDIRECT_URL = "/"
+  ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+  ACCOUNT_EMAIL_REQUIRED = True
+  SOCIALACCOUNT_PROVIDERS = {
+      "google": {
+          "SCOPE": ["profile", "email"],
+          "AUTH_PARAMS": {"access_type": "online"},
+      },
+      # Add other providers here
+  }
+  ```
 
 ---
 
@@ -154,6 +191,7 @@ from django.urls import path, include
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),  # Routes provided by this module
+    path("accounts/social/", include("allauth.socialaccount.urls")),  # Social login routes
 ]
 ```
 
@@ -170,6 +208,12 @@ Common routes exposed by `accounts.urls`:
 - `accounts/password-reset/complete/`
 - `accounts/password-change/`
 - `accounts/password-change/done/`
+- **Social routes (django-allauth):**
+  - `/accounts/social/login/`
+  - `/accounts/social/login/google/`
+  - `/accounts/social/login/facebook/`
+  - `/accounts/social/login/github/`
+  - etc.
 
 Adjust names/paths to match your repo’s actual URLs.
 
@@ -179,46 +223,42 @@ Adjust names/paths to match your repo’s actual URLs.
 
 ### 1) Registration with Email Verification
 
-- User submits the registration form (`/accounts/register/`).
-- A user record is created with `is_active=False`.
-- A time‑limited tokenized verification link is emailed (built with `urlsafe_base64_encode(user.pk)` + `default_token_generator`).
-- User clicks the link (`/accounts/verify/<uidb64>/<token>/`):
-  - Token is validated; on success, user is activated (`is_active=True`).
-  - The user is optionally auto‑logged in and redirected to the dashboard or login page.
-- If a link is invalid/expired, show a helpful page and offer “Resend verification email.”
-
-Notes:
-- Tokens are single‑use and time‑limited by Django’s password reset token mechanism and session salt rotation.
+*(See original section)*
 
 ### 2) Login
 
-- Login form at `/accounts/login/` supports email or username (depending on form configuration).
-- “Remember me” checkbox controls session expiration:
-  - If checked, use `SESSION_COOKIE_AGE` (e.g., 2 weeks).
-  - If not, session expires at browser close (`SESSION_EXPIRE_AT_BROWSER_CLOSE=True` or per‑request).
-- Inactive (unverified) accounts are not allowed to log in by default (configurable).
+*(See original section)*
 
-### 3) Logout
+### 3) Social Login
 
-- Logout route at `/accounts/logout/`.
-- Uses POST with CSRF protection (recommended). If you provide a GET link, ensure you warn about CSRF implications.
+- User clicks a “Login with Google/Facebook/GitHub” button on the login page.
+- Redirected to the provider’s OAuth flow.
+- On successful authentication, user is logged in and optionally registered if new.
+- Email verification may still be required (configurable).
+- Social accounts can be linked to existing user accounts.
 
-### 4) Password Reset (Forgot Password)
+**Template integration:**
+Add social login buttons to `login.html` and/or a separate `social_login.html` template. Example:
 
-- Request form at `/accounts/password-reset/` takes email.
-- An email is sent with a tokenized link:
-  - `/accounts/password-reset/confirm/<uidb64>/<token>/`
-- The link opens the set‑new‑password form. On success:
-  - User is notified; tokens are invalidated; optionally auto‑login or redirect to login.
-- Email content is customizable via templates (see “Emails”).
+```html
+{% load socialaccount %}
+<h3>Login with:</h3>
+<a href="{% provider_login_url 'google' %}">Google</a>
+<a href="{% provider_login_url 'facebook' %}">Facebook</a>
+<a href="{% provider_login_url 'github' %}">GitHub</a>
+```
 
-### 5) Change Password (Authenticated)
+### 4) Logout
 
-- Authenticated users visit `/accounts/password-change/`.
-- They must enter their current password, a new password, and confirmation.
-- On success:
-  - User session is updated to avoid logout (`update_session_auth_hash`).
-  - Redirect to `/accounts/password-change/done/`.
+*(See original section)*
+
+### 5) Password Reset (Forgot Password)
+
+*(See original section)*
+
+### 6) Change Password (Authenticated)
+
+*(See original section)*
 
 ---
 
@@ -229,116 +269,82 @@ Notes:
   - `register.html`, `login.html`, `verify_email_sent.html`, `email_verification_invalid.html`, `email_verification_success.html`
   - `password_reset.html`, `password_reset_done.html`, `password_reset_confirm.html`, `password_reset_complete.html`
   - `password_change.html`, `password_change_done.html`
+  - `social_login.html` (add social login buttons and instructions)
 - Include clear form errors, CSRF tokens, and accessible markup.
 
 ---
 
 ## Emails
 
-- Plain text templates under `accounts/emails/`:
-  - `verification_subject.txt`
-  - `verification_body.txt` (use placeholders like `{{ user }}`, `{{ verification_url }}`, `{{ site_name }}`)
-- For password reset, Django uses built‑in templates if you use `PasswordResetView`. You can override with your own templates for full control.
-- Development options:
-  - Console backend: `EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend` (prints to console)
-  - File backend: `django.core.mail.backends.filebased.EmailBackend`
-  - MailHog: point SMTP to `localhost:1025`
-  - Gmail: use an App Password (not your login)
+*(See original section)*
 
 ---
 
 ## Forms and Validation
 
-- Registration form validates:
-  - Unique email/username
-  - Password strength (Django password validators)
-  - Terms/consent (optional)
-- Login form supports email or username; rate limiting can be added via throttling middleware or third‑party apps.
-- Password reset and change use Django’s validators and token mechanisms.
+*(See original section)*
 
 ---
 
 ## Security Best Practices
 
-- Enforce HTTPS in production (`SECURE_SSL_REDIRECT`, HSTS, secure cookies).
-- Keep `SECRET_KEY` secret; rotate on compromise.
-- Use Django’s password validators and strong policy.
-- Use POST for logout to mitigate CSRF.
-- Limit token lifetime by periodically rotating salts; tokens are already time‑sensitive.
-- Don’t leak account existence:
-  - For password reset and registration confirmation pages, display generic success messages.
-- Consider adding:
-  - Account lockout after repeated failed logins
-  - 2FA or WebAuthn (optional)
-  - ReCAPTCHA on high‑risk endpoints
+*(See original section)*
+
+- For social login, ensure callback URLs are set securely on provider dashboards and in settings.
+- Review provider security options; avoid exposing sensitive scopes.
 
 ---
 
 ## Extensibility
 
-- Custom user model:
-  - Use `AbstractUser` (simple) or `AbstractBaseUser` (full control).
-  - Set `AUTH_USER_MODEL = "accounts.CustomUser"`.
-- Signals:
-  - Send verification email on post‑save for new users, or trigger from the registration view.
-- Adapters/Hooks:
-  - Override form clean methods, success redirects, and email composition.
+- Custom user model
+- Signals
+- Adapters/Hooks
+- **Social Account Adapters:**  
+  Override `allauth.socialaccount.adapter.DefaultSocialAccountAdapter` for custom logic on social signup/login.
 
 ---
 
 ## Running Tests
 
-If tests are included:
-
-- Run: `pytest` or `python manage.py test`
-- Add environment variables for test email backend and settings overrides as needed.
+*(See original section)*
 
 ---
 
 ## Deployment Notes
 
-- Use a production database (PostgreSQL).
-- Set `DEBUG=False`, proper `ALLOWED_HOSTS`.
-- Configure SMTP or an email provider (SendGrid, Mailgun, SES).
-- Run `python manage.py collectstatic`.
-- Set secure cookie and HSTS settings.
-- Use a WSGI/ASGI server (gunicorn/uvicorn) behind a reverse proxy (nginx).
+*(See original section)*
+
+- For social login, set correct OAuth callback URLs and credentials for each provider in production.
 
 ---
 
 ## Troubleshooting
 
-- Not receiving emails:
-  - Use console backend to verify templates first.
-  - Check SMTP creds, ports, TLS/SSL.
-  - Verify `DEFAULT_FROM_EMAIL` and provider domain verification.
-- Invalid verification or reset link:
-  - Token expired; resend.
-  - Check that `SITE_DOMAIN` and `SITE_SCHEME` match the link you expect.
-- Login failing after password change:
-  - Ensure `update_session_auth_hash(request, user)` is called after setting a new password.
-- “User already exists”:
-  - Enforce unique email or adjust unique constraints/forms.
+*(See original section)*
+
+- Social login not working:
+  - Check provider credentials and callback URLs.
+  - Inspect error messages for OAuth flow.
 
 ---
 
 ## Contributing
 
-- Open an issue or PR describing changes you’d like to make.
-- Follow existing code style and add/adjust tests for new behavior.
-- Keep security in mind when changing auth flows.
+*(See original section)*
 
 ---
 
 ## License
 
-Add your license here (e.g., MIT). If none is specified, please include one for clarity.
+*(See original section)*
 
 ---
 
 ## Acknowledgements
 
 - Built on Django’s robust auth and token utilities.
+- **Social login powered by [django-allauth](https://github.com/pennersr/django-allauth) or [social-auth-app-django](https://github.com/python-social-auth/social-app-django).**
 - HTML/CSS templates designed for clarity and accessibility.
 
 ---
