@@ -2,16 +2,21 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, full_name, password=None, **extra_fields):
+    def create_user(self, email, password=None, full_name=None, **extra_fields):
         if not email:
             raise ValueError("Users must have a valid email address")
         email = self.normalize_email(email)
+        
+        # If full_name not provided, try to extract from extra_fields or use email
+        if not full_name:
+            full_name = extra_fields.pop('full_name', None) or extra_fields.pop('name', None) or email.split('@')[0]
+        
         user = self.model(email=email, full_name=full_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, full_name, password=None, **extra_fields):
+    def create_superuser(self, email, full_name=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
@@ -21,7 +26,11 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         
-        return self.create_user(email, full_name, password, **extra_fields)
+        # Ensure full_name is provided for superuser
+        if not full_name:
+            full_name = extra_fields.pop('full_name', None) or email.split('@')[0]
+        
+        return self.create_user(email, password, full_name, **extra_fields)
 
 class User(AbstractUser):
     username = None

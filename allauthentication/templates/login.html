@@ -39,6 +39,24 @@
                 <p>Not registered? <a href="{% url 'register' %}" class="auth-link">Please register here</a></p>
                 <p>forget your password? <a href="{% url 'forgot_password' %}" class="auth-link">Reset it here</a></p>
             </div>
+             
+            <!-- OR Separator -->
+            <div class="separator">
+                <span>OR</span>
+            </div>
+
+            <!-- Social Login -->
+             <div class="social-login">
+                <a href="{% url 'social:begin' 'google-oauth2' %}?next=/" class="social-btn google-btn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M19.8055 10.2292C19.8055 9.55639 19.7508 8.90972 19.6508 8.28918H10.2V12.0292H15.5813C15.3563 13.2292 14.668 14.2542 13.6375 14.9542V17.4542H16.8508C18.7727 15.6917 19.8055 13.1667 19.8055 10.2292Z" fill="#4285F4"/>
+                        <path d="M10.2 19.9C12.8063 19.9 14.9727 19.0375 16.8508 17.4542L13.6375 14.9542C12.7695 15.5417 11.6555 15.8917 10.2 15.8917C7.68421 15.8917 5.57053 14.1167 4.79895 11.7375H1.48105V14.3125C3.34737 17.9875 6.48 19.9 10.2 19.9Z" fill="#34A853"/>
+                        <path d="M4.79895 11.7375C4.60632 11.15 4.5 10.525 4.5 9.9C4.5 9.275 4.60632 8.65 4.79895 8.0625V5.4875H1.48105C0.840526 6.7625 0.5 8.2 0.5 9.9C0.5 11.6 0.840526 13.0375 1.48105 14.3125L4.79895 11.7375Z" fill="#FBBC05"/>
+                        <path d="M10.2 4.00833C11.7727 4.00833 13.1836 4.525 14.3031 5.58333L17.1563 2.73333C14.9672 0.683333 12.8063 0 10.2 0C6.48 0 3.34737 1.9125 1.48105 5.4875L4.79895 8.0625C5.57053 5.68333 7.68421 4.00833 10.2 4.00833Z" fill="#EA4335"/>
+                    </svg>
+                    Continue with Google
+                </a>
+            </div> 
         </div>
     </div>
 
