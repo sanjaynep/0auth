@@ -1,6 +1,6 @@
 # 0auth — Custom Authentication System (Django)
 
-A production‑ready, fully customizable authentication module built with Python, HTML, and CSS. It includes email verification, user registration, login, logout, password reset via email, change password, and **social login** (Google, Facebook, GitHub, etc.).
+A production‑ready, fully customizable authentication module built with Python, HTML, and CSS. It includes email verification, user registration, login, logout, password reset via email, change password, and **social login** (Google).
 
 If you are integrating this module into an existing project, you can drop in the `accounts` app (or similarly named app in this repo) and wire up the URLs, templates, and settings as described below.
 
